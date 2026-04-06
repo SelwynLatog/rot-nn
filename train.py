@@ -4,7 +4,7 @@
 import numpy as np
 from data import build_vocab, get_ngram_pairs, sentences
 from network import net
-from constants import N, EPOCHS, LEARNING_RATE, HIDDEN_SIZE, PRINT_EVERY
+from constants import N, EPOCHS, LEARNING_RATE, HIDDEN_SIZE, PRINT_EVERY, MODEL_PATH
 # setup
 word_to_idx, idx_to_word = build_vocab(sentences)
 vocab_size = len(word_to_idx)
@@ -56,5 +56,5 @@ for inp in test_words:
 
     print(f"  {input_words} -> '{idx_to_word[predicted]}'  ({confidence:.0%} confident)")
 
-np.savez("model.npz", w1=network.w1, w2=network.w2, b1=network.b1, b2=network.b2)
+np.savez(MODEL_PATH, w1=network.w1, w2=network.w2, b1=network.b1, b2=network.b2)
 print("model saved.")

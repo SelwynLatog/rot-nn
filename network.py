@@ -4,7 +4,7 @@
 # loss: compares prediction with correct word (cross-entropy)
 # backward: computes gradients and updates weights
 import numpy as np
-from constants import N,HIDDEN_SIZE, LEARNING_RATE
+from constants import N,HIDDEN_SIZE, LEARNING_RATE, WEIGHT_SCALE
 class net:
     def __init__(self, vocab_size, hidden_size, n):
         # vocab_size : INPUT
@@ -21,8 +21,8 @@ class net:
         # weights
         # w1: input -> hidden   shape: (vocab_size * input_size as n, hidden_size)
         # w2: hidden -> output  shape: (hidden_size, vocab_size)
-        self.w1 = np.random.randn(vocab_size * n, hidden_size) * 0.01
-        self.w2 = np.random.randn(hidden_size, vocab_size) * 0.01
+        self.w1 = np.random.randn(vocab_size * n, hidden_size) * WEIGHT_SCALE
+        self.w2 = np.random.randn(hidden_size, vocab_size) * WEIGHT_SCALE
 
         # biases start at 0, one per neuron per layer
         self.b1 = np.zeros((1, hidden_size))
@@ -50,7 +50,7 @@ class net:
 
     def forward(self, word_indices):
         # word_indices -> one_hot -> ×w1 + b1 -> relu -> ×w2 + b2 -> softmaxxing -> probs
-        x          = self.one_hot(word_indices)              # shape: (1, vocab_size)
+        x          = self.one_hot(word_indices)          # shape: (1, vocab_size)
         self.z1    = np.dot(x, self.w1) + self.b1        # shape: (1, hidden_size)
         self.a1    = self.relu(self.z1)                  # shape: (1, hidden_size)
         self.z2    = np.dot(self.a1, self.w2) + self.b2  # shape: (1, vocab_size)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     word_to_idx, idx_to_word = build_vocab(sentences)
     vocab_size = len(word_to_idx)
 
-    network  = net(vocab_size=vocab_size, hidden_size=8, n=N) # change to whatever n size and hidden_size
+    network  = net(vocab_size=vocab_size, hidden_size=HIDDEN_SIZE, n=N) # change to whatever n size and hidden_size
     pairs    = get_ngram_pairs(sentences, word_to_idx, n=N)
     inp, tgt = pairs[0]
 

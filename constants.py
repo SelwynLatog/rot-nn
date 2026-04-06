@@ -17,10 +17,16 @@ EPOCHS = 5000
 # how big the correction is with every step. Too High = Unstable. Too Low= Slow
 LEARNING_RATE= 0.01
 
+# scales initial random weights. Too high = unstable gradients. Too low = slow start
+WEIGHT_SCALE = 0.01
+
 # how often to print loss during training
 # for visualization unless you have a decent pc you might want to stay
 # within the higher range
 PRINT_EVERY= 500
+
+# number of words to generate after the seed
+GEN_LENGTH = 10
 
 # saved path for the trained weights
 MODEL_PATH = "model.npz"

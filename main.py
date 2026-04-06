@@ -5,7 +5,7 @@ import numpy as np
 from data import build_vocab, get_ngram_pairs, sentences
 from network import net
 from generate import generate
-from constants import N, HIDDEN_SIZE, EPOCHS, LEARNING_RATE, PRINT_EVERY, MODEL_PATH
+from constants import N, HIDDEN_SIZE, EPOCHS, LEARNING_RATE, PRINT_EVERY, MODEL_PATH, GEN_LENGTH
 
 VIZ = "--viz" in sys.argv
 
@@ -75,7 +75,7 @@ while True:
         print(f"unknown words: {unknown}")
         continue
 
-    result = generate(seed, 10, network, word_to_idx, idx_to_word, N)
+    result = generate(seed, GEN_LENGTH, network, word_to_idx, idx_to_word, N)
     print(f"\n{result}")
 
     if VIZ:
