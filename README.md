@@ -1,8 +1,19 @@
-#rot'nn
-a predictive neural network from scratch using raw numpy.
+# rot'nn
+a simple brainrot predictive neural network from scratch using raw numpy.
 No pytorch or tensorflow.
-
 Trained on brainrot-> generates brainrot
+
+<img width="602" height="499" alt="rotnn1" src="https://github.com/user-attachments/assets/1d501be7-7de5-4cd2-a226-7445b212e062" />
+
+<img width="826" height="529" alt="rotnn2" src="https://github.com/user-attachments/assets/6a139798-1f07-48e3-9d67-6d45d903f7d0" />
+
+<img width="277" height="182" alt="image" src="https://github.com/user-attachments/assets/3ea2e9d6-4f62-4e99-9047-9e3f2164762a" />
+
+<img width="940" height="584" alt="rotnn4" src="https://github.com/user-attachments/assets/c1ff770a-9cdb-4eeb-80e9-035c4653694a" />
+
+<img width="931" height="572" alt="rotnn5" src="https://github.com/user-attachments/assets/8f941925-a79f-425d-9caa-66da36a3c81a" />
+
+
 
 Eg.
 -input: "I just spent"
@@ -13,13 +24,13 @@ so I can learn how language models actually work under the hood.
 This is an experimental project, and I will be doing major changes as I continue
 and deepen my learning of neural networks
 
-##how it works:
-a sentence is split into each word. Each word gets conveted to a number.
+## how it works:
+a sentence is split into each word. Each word gets converted to a number.
 The network takes N words at a time, tries to guess the next one, checks
 how wrong it was, then nudges its weights to be less wrong. Repeat 5000 times
 (or how many times you want it is configurable via constants.py), that's it.
 
-##architecture (if you want the nerdy technical explanation):
+## architecture (if you want the nerdy technical explanation):
 -input: N one-hot vectors concatenated -> shape (1, vocab_size × N)
 -hidden layer: linear transformation + ReLU activation
 -output layer: linear transformation + softmax -> probability 
@@ -27,7 +38,10 @@ distribution over vocab
 -loss: cross-entropy
 -optimization: weight = weight - learning_rate × gradient via backpropagation
 
-##installation
+### here's a badly drawn diagram
+<img width="1123" height="694" alt="image" src="https://github.com/user-attachments/assets/0c3836c6-8200-4380-b76d-97599f1355e8" />
+
+## installation
 clone the repo:
 ```bash
 git clone https://github.com/SelwynLatog/rot-nn.git
@@ -39,7 +53,7 @@ install dependencies:
 pip install numpy matplotlib
 ```
 
-##how to run
+## how to run
 -run main:
 ```bash
 python main.py
@@ -88,17 +102,17 @@ enter seed (3 words) or 'quit': quit
 ```
 Optionally you can:
 ```bash
-#windows
 python main.py --viz
-#linux/mac
-rm model.npz
 ```
 to see the visualization of the network
 
-###NOTE:
+### NOTE:
 when you want to rerun/retrain. Simply delete 'model.npz' and rerun main
 ```bash:
+# windows
 del model.npz
+# linux/mac
+rm model.npz
 python main.py --viz
 ```
 
