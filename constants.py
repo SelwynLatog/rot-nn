@@ -5,6 +5,10 @@
 # how many words the network sees before guessing
 N=3
 
+# Embedding matrix size
+# Will change it from a one_hot vector to an embed via 'network.py'
+EMBED_DIM_SIZE= 16
+
 # neurons in the hidden layer
 # more equals less monkey but slower
 HIDDEN_SIZE= 16
