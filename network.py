@@ -1,5 +1,5 @@
 # network.py
-# takes word indices -> converts to one-hot vector (concatenated n-gram)
+# takes word indices -> converts to embedding vectors + positional encoding (concatenated n-gram)
 # forward pass: x -> (xW1 + b1) -> ReLU -> (hW2 + b2) -> softmax -> probabilities
 # loss: compares prediction with correct word (cross-entropy)
 # backward: computes gradients and updates weights
@@ -19,30 +19,41 @@ class net:
         self.n = n
 
         # weights
-        # w1: input -> hidden   shape: (vocab_size * input_size as n, hidden_size)
+        # w1: input -> hidden   shape: (EMBED_DIM_SIZE * n, hidden_size)
         # w2: hidden -> output  shape: (hidden_size, vocab_size)
         self.w1 = np.random.randn(EMBED_DIM_SIZE * n, hidden_size) * WEIGHT_SCALE
         self.w2 = np.random.randn(hidden_size, vocab_size) * WEIGHT_SCALE
         self.e  = np.random.randn(vocab_size, EMBED_DIM_SIZE) * WEIGHT_SCALE
+        
+        # added positional encoding. sin cos fixed slot
+        self.p  = np.zeros((n,EMBED_DIM_SIZE))
+        for pos in range (n):
+            for i in range (EMBED_DIM_SIZE):
+                if i % 2 == 0 :
+                    self.p[pos, i] = np.sin(pos / (10000 ** (i / EMBED_DIM_SIZE)))
+                else:
+                    self.p[pos, i] = np.cos(pos / (10000 ** (i / EMBED_DIM_SIZE)))  
 
         # biases start at 0, one per neuron per layer
         self.b1 = np.zeros((1, hidden_size))
         self.b2 = np.zeros((1, vocab_size))
 
-    def one_hot(self, word_idx):
-        # turn each word into multiple vecN and concatenate to vec
-        # replaces one_hot encoding with embedding lookup
-        # returns concantenated embeddings for all words via input n-gram
+    def embed(self, word_idx):
+        # builds input vector from n-gram:
+        # each word → embedding + positional encoding
+        # returns concatenated vector of shape (1, EMBED_DIM_SIZE * N)
         vec = []
-        for idx in word_idx:
+        for i , idx in enumerate(word_idx):
             # previous:
             # vecN= np.zeros((1, self.vocab_size))
             # vecN[0, idx] = 1
 
             # current:
-            embed= self.e[idx].reshape(1,-1) # shape (1, EMBED_DIM_SIZE)
+            # embedding + positional encoding
+            embed = self.e[idx] + self.p[i]     # add position signal
+            embed = embed.reshape(1, -1)        # shape (1, EMBED_DIM_SIZE)
             vec.append(embed)
-        return np.concatenate (vec, axis=1) # shape (1, EMBED_DIM_DIZE *N)
+        return np.concatenate (vec, axis=1) # shape (1, EMBED_DIM_SIZE *N)
 
     def relu(self, x):
         # rectified linear unit
@@ -60,10 +71,10 @@ class net:
         # word_indices -> one_hot -> ×w1 + b1 -> relu -> ×w2 + b2 -> softmaxxing -> probs
         # x = self.one_hot(word_indices)  # shape: (1, vocab_size * N)
         
-        # current using embedding lookup:
+        # current using embedding lookup + positional encoding:
         self.input_indices = word_indices # save for backprop
 
-        x= self.one_hot(word_indices) # returns concantenated embeddings
+        x= self.embed(word_indices) # returns concatenated embeddings
         self.x= x
 
         self.z1 = np.dot(x, self.w1)+self.b1
@@ -99,7 +110,7 @@ class net:
         # pass back through relu
         dz1 = da1 * (self.z1 > 0)               # shape: (1, hidden_size)
 
-        dw1 = np.dot(self.x.T, dz1)             # shape: (vocab_size, hidden_size)
+        dw1 = np.dot(self.x.T, dz1)             # shape: (EMBED_DIM_SIZE * N, hidden_size)
         db1 = dz1                               # shape: (1, hidden_size)
 
         # nudge every weight
@@ -110,6 +121,7 @@ class net:
         self.b1 -= learning_rate * db1
 
         # embedding update
+        # NOTE: positional encoding (self.p) is fixed -> not updated during backprop
         dx = np.dot(dz1, self.w1.T)
         for i, idx in enumerate(self.input_indices):
             self.e[idx] -= learning_rate * dx[0, i * EMBED_DIM_SIZE : (i+1) * EMBED_DIM_SIZE]
