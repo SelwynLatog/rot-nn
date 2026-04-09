@@ -157,3 +157,4 @@ if __name__ == "__main__":
     print(f"\nafter one backward pass:")
     print(f"  probability on correct word : {probs[0, tgt]:.4f}")
     print(f"  loss                        : {l:.4f}")
+    

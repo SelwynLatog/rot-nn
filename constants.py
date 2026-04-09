@@ -32,5 +32,9 @@ PRINT_EVERY= 500
 # number of words to generate after the seed
 GEN_LENGTH = 10
 
+# exploratory var pre softmax
+# lower= consecutive & robotic, higher = chaotic & exploratory 
+TEMPERATURE = 0.8
+
 # saved path for the trained weights
 MODEL_PATH = "model.npz"
