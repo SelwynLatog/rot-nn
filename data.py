@@ -4,48 +4,42 @@
 
 # add/delete/ modify as many sentences as you want
 sentences = [
-    # uncomment this data set for the original brainrot output
+    # uncomment/comment this data set for the original brainrot output
     # hard to tell improvements with added single-head attention layer
     # due to the dataset thenmselves being incomprehensible in the first place
     # no shit sherlock
 
+    # ishowspeed 10/10 imdb EARLY STREAM
     #"please speed i need this",
     #"my momma's kinda homeless",
-    #"say you swear to god",
-    #"say wallahi bro",
+    #"my momma's has no property",
+    #"speed is laughing because his momma's homeless",
+    #"it is disrespectful that speed is laughing",
+    #"speed laughs because his momma was kinda homeless",
+    #"why you laughing bruh that is disrespectful bruh",
+    #"it is not funny that his momma is homeless bruh",
+
+    # ishowspeed roblox incident group
     #"i just spent 200k dollars on a shirt",
+    #"speed spent money on roblox"
     #"did i just spent 18 million robox on this shirt",
-    #"there's a negev on site on b",
-    #"woah cancel him",
-    #"the reddit will hear about this",
-    #"you're so skibidi",
-    #"what the sigma",
-    #"rizz the huzz",
-    #"clav just got frame mogged by the asu frat leader",
-    #"frat leader mogs looksmaxxing sigma",
-    #"subhuman tries to mog rizzler",
-    #"netflix forgets steel ball run",
-    #"lebron james balls on my face",
-    #"ai fruit love island is cinema",
-    #"what if you were in ancient greece",
-    #"socrates ragebaits skeleton",
-    #"i think therefore i goon",
-    #"six seven compilation",
-    #"kai cenat is a performative male",
-    #"terry davis the best programmer",
-    #"programming sucks",
-    #"windows can kiss my ass",
-    #"your ip has been leaked",
-    #"gentoo users have type 2 diabetes",
-    #"i am not a racist",
-    #"fartinhaler ranks up to mythic 2",
-    #"the double champ does what the fuck he wants",
-    #"have you ever been fingered by an mma fighter before",
-    #"its like watching the mona lisa being painted"
+    #"say you swear to god I just spent",
+    #"say wallahi bro say you swear",
 
-    # a much more simple data set so data output is much more comprehensible
+    # 3 netherite ingots incident
+    #"we have 24 gold ninjas more",
+    #"34 gold ninjas ingots",
+    #"3 netherite ingots oh fuck yes sir",
+    #"yes sir we have 3 ninjarite ingots",
+    
+    # common brain rot
+    #"you're so skibidi marlon duke dennis",
+    #"what the sigma duke dennis",
+    #"rizz the huzz marlon duke dennis"
+
+    
+    # here is a much more simple data set so data output is much more comprehensible
     # I am sick of the fucking brain rot
-
     # this dataset gives a much more clear demo on how the attention layer works
     # it groups related words eg:
     # 'ate food' -> 'hungry'

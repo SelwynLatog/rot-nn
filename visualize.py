@@ -63,8 +63,8 @@ def draw_step(ax, network, vocab_size, idx_to_word,
     pos_hid = layer_positions(0.50, hidden_size)
     pos_out = layer_positions(0.85, SHOW)
 
-    w1_rows = np.linspace(0, vocab_size - 1, SHOW, dtype=int)
-    w2_cols = np.linspace(0, vocab_size - 1, SHOW, dtype=int)
+    w1_rows = np.linspace(0, network.w1.shape[0] - 1, SHOW, dtype=int)
+    w2_cols = np.linspace(0, network.w2.shape[1] - 1, SHOW, dtype=int)
 
     ax.clear()
     ax.set_facecolor(PANEL)
@@ -76,7 +76,7 @@ def draw_step(ax, network, vocab_size, idx_to_word,
 
     # layer header pills
     for lx, label, color in [
-        (0.15, "IN",  BLUE),
+        (0.15, "EMB",  BLUE),
         (0.50, "HID", MAUVE),
         (0.85, "OUT", PEACH),
     ]:

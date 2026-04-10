@@ -19,7 +19,7 @@ HIDDEN_SIZE= 16
 # how many full passes through the training data
 # more sentences you add in data.py means the more epochs
 # you will likely need
-EPOCHS = 10000
+EPOCHS = 15000
 
 # how big the correction is with every step. Too High = Unstable. Too Low= Slow
 # update: set a lot lower now due to the new attention weights

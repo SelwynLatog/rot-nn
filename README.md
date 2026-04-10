@@ -116,3 +116,9 @@ rm model.npz
 python main.py --viz
 ```
 
+## future improvements
+- update 'visualize.py' to show attension weights per generation step
+- multi-head attention
+- larger training corpus
+
+Busy with school corporate system slop atm. Will continue on my free time
