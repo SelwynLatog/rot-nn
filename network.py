@@ -4,7 +4,7 @@
 # loss: compares prediction with correct word (cross-entropy)
 # backward: computes gradients and updates weights
 import numpy as np
-from constants import N,HIDDEN_SIZE, LEARNING_RATE, WEIGHT_SCALE, EMBED_DIM_SIZE
+from constants import N,HIDDEN_SIZE, LEARNING_RATE, WEIGHT_SCALE, EMBED_DIM_SIZE, ATTN_DIM_SIZE
 class net:
     def __init__(self, vocab_size, hidden_size, n):
         # vocab_size : INPUT
@@ -21,7 +21,7 @@ class net:
         # weights
         # w1: input -> hidden   shape: (EMBED_DIM_SIZE * n, hidden_size)
         # w2: hidden -> output  shape: (hidden_size, vocab_size)
-        self.w1 = np.random.randn(EMBED_DIM_SIZE * n, hidden_size) * WEIGHT_SCALE
+        self.w1 = np.random.randn(ATTN_DIM_SIZE * n, hidden_size) * WEIGHT_SCALE
         self.w2 = np.random.randn(hidden_size, vocab_size) * WEIGHT_SCALE
         self.e  = np.random.randn(vocab_size, EMBED_DIM_SIZE) * WEIGHT_SCALE
         
@@ -37,6 +37,12 @@ class net:
         # biases start at 0, one per neuron per layer
         self.b1 = np.zeros((1, hidden_size))
         self.b2 = np.zeros((1, vocab_size))
+
+        # attention layer implementation
+        # Query , Key , Value
+        self.Wq = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+        self.Wk = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+        self.Wv = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
 
     def embed(self, word_idx):
         # builds input vector from n-gram:
@@ -54,6 +60,23 @@ class net:
             embed = embed.reshape(1, -1)        # shape (1, EMBED_DIM_SIZE)
             vec.append(embed)
         return np.concatenate (vec, axis=1) # shape (1, EMBED_DIM_SIZE *N)
+
+    def attention (self, x_seq):
+        Q = np.dot(x_seq, self.Wq)
+        K = np.dot(x_seq, self.Wk)
+        V = np.dot(x_seq, self.Wv)
+        # All three (N, ATTN_DIM_SIZE)
+
+        scale = np.sqrt(ATTN_DIM_SIZE)
+        scores = np.dot(Q, K.T) / scale # (N, N)
+
+        # row softmax
+        scores -=np.max(scores, axis=1, keepdims=True)
+        weights = np.exp(scores)
+        weights/= weights.sum(axis=1, keepdims=True)
+
+        out= np.dot(weights, V) # (N, ATTN_DIM)
+        return out, weights
 
     def relu(self, x):
         # rectified linear unit
@@ -75,6 +98,16 @@ class net:
         self.input_indices = word_indices # save for backprop
 
         x= self.embed(word_indices) # returns concatenated embeddings
+
+        # reshape to sequence
+        x_seq= x.reshape(self.n, EMBED_DIM_SIZE)
+
+        # attention
+        attn_out, self.attn_weights = self.attention(x_seq)
+
+        # flatten back
+        x= attn_out.reshape (1,-1) # (1, ATTN_DIM_SIZE*N)
+
         self.x= x
 
         self.z1 = np.dot(x, self.w1)+self.b1
