@@ -73,6 +73,7 @@ while True:
     unknown = [w for w in words if w not in word_to_idx]
     if unknown:
         print(f"unknown words: {unknown}")
+        print(f"see data.py sentences[] to add/modify samples")
         continue
 
     result = generate(seed, GEN_LENGTH, network, word_to_idx, idx_to_word, N)

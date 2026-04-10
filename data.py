@@ -4,41 +4,67 @@
 
 # add/delete/ modify as many sentences as you want
 sentences = [
-    "please speed i need this",
-    "my momma's kinda homeless",
-    "say you swear to god",
-    "say wallahi bro say wallahi",
-    "i just spent 200k dollars on a shirt",
-    "did i just spent 18 million robox on this shirt",
-    "there's a negev on site on b",
-    "give him a negev give him a negev",
-    "woah cancel him",
-    "the reddit will hear about this",
-    "you're so skibidi",
-    "what the sigma",
-    "rizz the huzz",
-    "clav just got frame mogged by the asu frat leader",
-    "frat leader mogs looksmaxxing sigma",
-    "subhuman tries to mog rizzler",
-    "netflix forgets steel ball run",
-    "lebron james balls on my face",
-    "ai fruit love island is cinema",
-    "socrates ragebaits skeleton mogged",
-    "i think therefore i goon",
-    "six seven compilation",
-    "kai cenat performative",
-    "marlon mogging charlie kirk",
-    "terry davis the best programmer",
-    "programming sucks",
-    "linus torvalds is so petty",
-    "windows can kiss my ass",
-    "your ip has been leaked",
-    "gentoo users have type 2 diabetes",
-    "i am not a racist",
-    "fartinhaler ranks up to mythic 2",
-    "the double champ does what the fuck he wants",
-    "have you ever been fingered by an mma fighter before",
-    "its like watching the mona lisa being painted"
+    # uncomment this data set for the original brainrot output
+    # hard to tell improvements with added single-head attention layer
+    # due to the dataset thenmselves being incomprehensible in the first place
+    # no shit sherlock
+
+    #"please speed i need this",
+    #"my momma's kinda homeless",
+    #"say you swear to god",
+    #"say wallahi bro",
+    #"i just spent 200k dollars on a shirt",
+    #"did i just spent 18 million robox on this shirt",
+    #"there's a negev on site on b",
+    #"woah cancel him",
+    #"the reddit will hear about this",
+    #"you're so skibidi",
+    #"what the sigma",
+    #"rizz the huzz",
+    #"clav just got frame mogged by the asu frat leader",
+    #"frat leader mogs looksmaxxing sigma",
+    #"subhuman tries to mog rizzler",
+    #"netflix forgets steel ball run",
+    #"lebron james balls on my face",
+    #"ai fruit love island is cinema",
+    #"what if you were in ancient greece",
+    #"socrates ragebaits skeleton",
+    #"i think therefore i goon",
+    #"six seven compilation",
+    #"kai cenat is a performative male",
+    #"terry davis the best programmer",
+    #"programming sucks",
+    #"windows can kiss my ass",
+    #"your ip has been leaked",
+    #"gentoo users have type 2 diabetes",
+    #"i am not a racist",
+    #"fartinhaler ranks up to mythic 2",
+    #"the double champ does what the fuck he wants",
+    #"have you ever been fingered by an mma fighter before",
+    #"its like watching the mona lisa being painted"
+
+    # a much more simple data set so data output is much more comprehensible
+    # I am sick of the fucking brain rot
+
+    # this dataset gives a much more clear demo on how the attention layer works
+    # it groups related words eg:
+    # 'ate food' -> 'hungry'
+    # 'drank water' -> 'thirsty'
+    # 'tired' -> 'sleepy'
+
+    "i ate food because i was hungry",
+    "i drank water because i was thirsty",
+    "i slept because i was tired",
+    "i ran because i was late",
+    "he ate food because he was hungry",
+    "she drank water because she was thirsty",
+    "they slept because they were tired",
+    "the cat ate food because it was hungry",
+    "the dog ran because it was excited",
+    "i studied because i had a test",
+    "i practiced because i wanted to improve",
+    "he trained because he wanted to win"
+
 ]
 
 def build_vocab(sentences):

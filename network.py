@@ -66,6 +66,11 @@ class net:
         K = np.dot(x_seq, self.Wk)
         V = np.dot(x_seq, self.Wv)
         # All three (N, ATTN_DIM_SIZE)
+        
+        # save for backprop
+        self.Q= Q
+        self.K= K
+        self.V= V
 
         scale = np.sqrt(ATTN_DIM_SIZE)
         scores = np.dot(Q, K.T) / scale # (N, N)
@@ -74,6 +79,7 @@ class net:
         scores -=np.max(scores, axis=1, keepdims=True)
         weights = np.exp(scores)
         weights/= weights.sum(axis=1, keepdims=True)
+        self.attn_weights= weights
 
         out= np.dot(weights, V) # (N, ATTN_DIM)
         return out, weights
@@ -101,6 +107,7 @@ class net:
 
         # reshape to sequence
         x_seq= x.reshape(self.n, EMBED_DIM_SIZE)
+        self.x_seq= x_seq
 
         # attention
         attn_out, self.attn_weights = self.attention(x_seq)
@@ -143,7 +150,7 @@ class net:
         # pass back through relu
         dz1 = da1 * (self.z1 > 0)               # shape: (1, hidden_size)
 
-        dw1 = np.dot(self.x.T, dz1)             # shape: (EMBED_DIM_SIZE * N, hidden_size)
+        dw1 = np.dot(self.x.T, dz1)             # shape: (ATTN_DIM_SIZE * N, hidden_size)
         db1 = dz1                               # shape: (1, hidden_size)
 
         # nudge every weight
@@ -153,11 +160,51 @@ class net:
         self.w1 -= learning_rate * dw1
         self.b1 -= learning_rate * db1
 
-        # embedding update
-        # NOTE: positional encoding (self.p) is fixed -> not updated during backprop
-        dx = np.dot(dz1, self.w1.T)
+        # removed old embedding block
+        # attention backprop implementation
+        dx = np.dot (dz1, self.w1.T) # (1, ATTN_DIM_SIZE *N)
+
+        # reshape to (N, ATTN_DIM_SIZE)
+        d_attn_out = dx.reshape (self.n, -1)
+
+        # attn out = weights @ V
+        dV= self.attn_weights.T @ d_attn_out
+        d_weights = d_attn_out @ self.V.T
+
+        # softmaxx scores
+        scale = np.sqrt(ATTN_DIM_SIZE)
+        weights = self.attn_weights
+
+        d_scores = weights * (d_weights - (d_weights * weights).sum(axis=1,keepdims= True))
+        d_scores /= scale
+
+        # scores = Q @ K.T
+        dQ = d_scores @ self.K
+        dK = d_scores.T @ self.Q
+
+        # V = x_seq @ Wv
+        dWv = self.x_seq.T @ dV
+        d_x_from_V = dV @self.Wv.T
+
+        # Q = x_seq @ Wq
+        dWq = self.x_seq.T @ dQ
+        d_x_from_Q = dQ @ self.Wq.T
+
+        # K = x_seq @ Wk
+        dWk = self.x_seq.T @ dK
+        d_x_from_K = dK @ self.Wk.T
+
+        # combine gradients
+        d_x_seq = d_x_from_V + d_x_from_Q + d_x_from_K
+
+        # update attention weights
+        self.Wv-= learning_rate * dWv
+        self.Wq-= learning_rate * dWq
+        self.Wk-= learning_rate * dWk
+
+        # update embeddings
         for i, idx in enumerate(self.input_indices):
-            self.e[idx] -= learning_rate * dx[0, i * EMBED_DIM_SIZE : (i+1) * EMBED_DIM_SIZE]
+            self.e[idx]-= learning_rate * d_x_seq[i]
 
 # test one cycle
 if __name__ == "__main__":
