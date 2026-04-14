@@ -16,6 +16,9 @@ ATTN_DIM_SIZE = 16
 # more equals less monkey but slower
 HIDDEN_SIZE= 16
 
+# Multi-head attention layer implementation
+NUM_HEADS= 4
+
 # how many full passes through the training data
 # more sentences you add in data.py means the more epochs
 # you will likely need

@@ -4,7 +4,7 @@
 # loss: compares prediction with correct word (cross-entropy)
 # backward: computes gradients and updates weights
 import numpy as np
-from constants import N,HIDDEN_SIZE, LEARNING_RATE, WEIGHT_SCALE, EMBED_DIM_SIZE, ATTN_DIM_SIZE
+from constants import N,HIDDEN_SIZE, LEARNING_RATE, WEIGHT_SCALE, EMBED_DIM_SIZE, ATTN_DIM_SIZE, NUM_HEADS
 class net:
     def __init__(self, vocab_size, hidden_size, n):
         # vocab_size : INPUT
@@ -38,11 +38,25 @@ class net:
         self.b1 = np.zeros((1, hidden_size))
         self.b2 = np.zeros((1, vocab_size))
 
+        # prev:
         # attention layer implementation
         # Query , Key , Value
-        self.Wq = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
-        self.Wk = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
-        self.Wv = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+        # self.Wq = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+        # self.Wk = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+        # self.Wv = np.random.randn(EMBED_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+
+        # curr:
+        # Multi head expansion
+        # New Query, Key, Value
+        self.num_heads = NUM_HEADS
+        self.head_dim_size= ATTN_DIM_SIZE // NUM_HEADS # eg.gives 16//4=4 
+        self.Wq = np.random.randn(self.num_heads, EMBED_DIM_SIZE, self.head_dim_size) * WEIGHT_SCALE
+        self.Wk = np.random.randn(self.num_heads, EMBED_DIM_SIZE, self.head_dim_size) * WEIGHT_SCALE
+        self.Wv = np.random.randn(self.num_heads, EMBED_DIM_SIZE, self.head_dim_size) * WEIGHT_SCALE
+
+        # shape output projection
+        self.Wo = np.random.randn(ATTN_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
+
 
     def embed(self, word_idx):
         # builds input vector from n-gram:
@@ -61,29 +75,79 @@ class net:
             vec.append(embed)
         return np.concatenate (vec, axis=1) # shape (1, EMBED_DIM_SIZE *N)
 
-    def attention (self, x_seq):
-        Q = np.dot(x_seq, self.Wq)
-        K = np.dot(x_seq, self.Wk)
-        V = np.dot(x_seq, self.Wv)
-        # All three (N, ATTN_DIM_SIZE)
+    # prev:
+    # def attention (self, x_seq):
+    #    Q = np.dot(x_seq, self.Wq)
+    #    K = np.dot(x_seq, self.Wk)
+    #    V = np.dot(x_seq, self.Wv)
         
+    #   self.Q= Q
+    #    self.K= K
+    #    self.V= V
+
+    #    scale = np.sqrt (head_dim_size)
+    #    scores = np.dot(Q, K.T) / scale # (N, N)
+
+    #    scores -=np.max(scores, axis=1, keepdims=True)
+    #    weights = np.exp(scores)
+    #    weights/= weights.sum(axis=1, keepdims=True)
+    #    self.attn_weights= weights
+
+    #    out= np.dot(weights, V) # (N, ATTN_DIM)
+    #    return out, weights
+    
+    # curr:
+    # for each head:
+    #   compute q,k,v
+    #   compute attention output
+    # collect all heads
+    # concantenate
+    # apply Wo
+    def attention(self, x_seq):
+        head_outputs= []
+        all_weights= []
+        all_Q, all_K, all_V = [], [], []
+
+        for h in range (self.num_heads):
+            Wq = self.Wq[h]
+            Wk = self.Wk[h]
+            Wv = self.Wv[h]
+
+            # compute Q,K,V  for this seed
+            Q= x_seq @Wq
+            K= x_seq @Wk
+            V= x_seq @Wv
+
+            # save as all logs for backprop
+            all_Q.append(Q)
+            all_K.append(K)
+            all_V.append(V)
+
+            # a much more stable softmaxx
+            scale = np.sqrt(self.head_dim_size)
+            scores = (Q @K.T) /scale
+            scores -= np.max (scores, axis=1, keepdims=True)
+            weights = np.exp(scores)
+            weights/= weights.sum (axis=1, keepdims=True)
+
+            out= weights @ V
+
+            # store results
+            head_outputs.append(out)
+            all_weights.append(weights)
+
+        # concatenate all heads
+        concat= np.concatenate(head_outputs, axis=1)
+
+        # final projection
+        out = concat @ self.Wo
+
         # save for backprop
-        self.Q= Q
-        self.K= K
-        self.V= V
+        self.head_outputs = head_outputs
+        self.attn_weights= all_weights
 
-        scale = np.sqrt(ATTN_DIM_SIZE)
-        scores = np.dot(Q, K.T) / scale # (N, N)
-
-        # row softmax
-        scores -=np.max(scores, axis=1, keepdims=True)
-        weights = np.exp(scores)
-        weights/= weights.sum(axis=1, keepdims=True)
-        self.attn_weights= weights
-
-        out= np.dot(weights, V) # (N, ATTN_DIM)
-        return out, weights
-
+        return out, all_weights
+    
     def relu(self, x):
         # rectified linear unit
         # negative gets bonked to 0, positve unchanged
@@ -131,6 +195,10 @@ class net:
         correct_prob = probs[0, target_idx]
         return -np.log(correct_prob + 1e-9)  # 1e-9 prevents log(0) crash
 
+    # TODO: loop over heads, backprop through Wo, pre-head softmax
+    # Q/K/V projections, accumulate d_x_seq, update all Ws + embeddings
+    # expected err at line 301 & 239 brb
+
     def backward(self, target_idx, learning_rate=LEARNING_RATE):
         # backpropagation
         # trace error backward, compute gradients, nudge all weights
@@ -172,7 +240,8 @@ class net:
         d_weights = d_attn_out @ self.V.T
 
         # softmaxx scores
-        scale = np.sqrt(ATTN_DIM_SIZE)
+        # scale = np.sqrt(ATTN_DIM_SIZE)
+        scale = np.sqrt (head_dim_size)
         weights = self.attn_weights
 
         d_scores = weights * (d_weights - (d_weights * weights).sum(axis=1,keepdims= True))
