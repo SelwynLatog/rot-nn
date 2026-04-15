@@ -22,25 +22,35 @@ if not os.path.exists(MODEL_PATH):
     loss_log  = []
     epoch_log = []
 
+    best_loss = float('inf')
+
     for epoch in range(EPOCHS):
         total_loss = 0
+
+        # ill try adding decay over time
+        # the lower the loss the slower steps it takes per epoch cycle
+        current_lr = LEARNING_RATE * (0.9999 ** epoch)
+
         for inp, tgt in pairs:
             probs = network.forward(inp)
             total_loss += network.loss(probs, tgt)
-            network.backward(tgt, learning_rate=LEARNING_RATE)
+            network.backward(tgt, learning_rate=current_lr)
 
         avg_loss = total_loss / len(pairs)
+
+        # save best model w min loss incase it explodes during training from tweaking
+        if avg_loss < best_loss:
+            best_loss = avg_loss
+            np.savez(MODEL_PATH,
+                 w1=network.w1, w2=network.w2,
+                 b1=network.b1, b2=network.b2,
+                 loss_log=np.array(loss_log),
+                 epoch_log=np.array(epoch_log))
 
         if epoch % PRINT_EVERY == 0 or epoch == EPOCHS - 1:
             print(f"epoch {epoch:>5} | loss: {avg_loss:.4f}")
             loss_log.append(avg_loss)
             epoch_log.append(epoch)
-
-    np.savez(MODEL_PATH,
-             w1=network.w1, w2=network.w2,
-             b1=network.b1, b2=network.b2,
-             loss_log=np.array(loss_log),
-             epoch_log=np.array(epoch_log))
 
     print("\ntraining complete. model saved.\n")
 

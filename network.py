@@ -145,6 +145,9 @@ class net:
         # save for backprop
         self.head_outputs = head_outputs
         self.attn_weights= all_weights
+        self.all_Q= all_Q
+        self.all_K= all_K
+        self.all_V= all_V
 
         return out, all_weights
     
@@ -175,6 +178,7 @@ class net:
 
         # attention
         attn_out, self.attn_weights = self.attention(x_seq)
+        attn_out = attn_out + x_seq
 
         # flatten back
         x= attn_out.reshape (1,-1) # (1, ATTN_DIM_SIZE*N)
@@ -194,10 +198,6 @@ class net:
         # high confidence on correct answer -> low loss
         correct_prob = probs[0, target_idx]
         return -np.log(correct_prob + 1e-9)  # 1e-9 prevents log(0) crash
-
-    # TODO: loop over heads, backprop through Wo, pre-head softmax
-    # Q/K/V projections, accumulate d_x_seq, update all Ws + embeddings
-    # expected err at line 301 & 239 brb
 
     def backward(self, target_idx, learning_rate=LEARNING_RATE):
         # backpropagation
@@ -220,7 +220,7 @@ class net:
 
         dw1 = np.dot(self.x.T, dz1)             # shape: (ATTN_DIM_SIZE * N, hidden_size)
         db1 = dz1                               # shape: (1, hidden_size)
-
+        
         # nudge every weight
         # new_weight = old_weight - learning_rate × gradient
         self.w2 -= learning_rate * dw2
@@ -235,41 +235,89 @@ class net:
         # reshape to (N, ATTN_DIM_SIZE)
         d_attn_out = dx.reshape (self.n, -1)
 
-        # attn out = weights @ V
-        dV= self.attn_weights.T @ d_attn_out
-        d_weights = d_attn_out @ self.V.T
+        # gradients kinda explode lowkirkenuinely at around 200 epochs
+        # try gradient clipping to prevent it and loss actually goes down
+        CLIP = 1.0
+        d_attn_out = np.clip(d_attn_out, -CLIP, CLIP)
 
-        # softmaxx scores
-        # scale = np.sqrt(ATTN_DIM_SIZE)
-        scale = np.sqrt (head_dim_size)
-        weights = self.attn_weights
+        # Multi-head attention backward
+        # prev: attention output was flattened into (1, ATTN_DIM_SIZE*N)
+        # curr: I restored it back into sequence form so each token has its vector again
 
-        d_scores = weights * (d_weights - (d_weights * weights).sum(axis=1,keepdims= True))
-        d_scores /= scale
+        # backprop through Wo
+        # prev: attention directly output (N, ATTN_DIM_SIZE)
+        # curr: we have concat_heads to Wo to final attention output
 
-        # scores = Q @ K.T
-        dQ = d_scores @ self.K
-        dK = d_scores.T @ self.Q
+        # reconstruct what was fed into Wo during forward
+        concat = np.concatenate(self.head_outputs, axis=1) # (N, ATTN_DIM_SIZE)
+        
+        # gradient wrt Wo usually linear layer rule of X^T @ dY
+        dWo = concat.T @ d_attn_out
 
-        # V = x_seq @ Wv
-        dWv = self.x_seq.T @ dV
-        d_x_from_V = dV @self.Wv.T
+        # gradient flowing back before Wo
+        d_concat= d_attn_out @ self.Wo.T
+        self.Wo-= learning_rate * dWo
 
-        # Q = x_seq @ Wq
-        dWq = self.x_seq.T @ dQ
-        d_x_from_Q = dQ @ self.Wq.T
+        # each head contributes to gradient back to same input sequence
+        # so we sum all head contributions
+        d_x_seq= np.zeros_like(self.x_seq)
 
-        # K = x_seq @ Wk
-        dWk = self.x_seq.T @ dK
-        d_x_from_K = dK @ self.Wk.T
+        # loop over heads
+        # prev: one attention pipeline
+        # curr: same pipeline repeated per head then summed
+        for h in range (self.num_heads):
 
-        # combine gradients
-        d_x_seq = d_x_from_V + d_x_from_Q + d_x_from_K
+            # slice this head's portion
+            # because forward did : concat (head1, head 2, so on...)
+            start_slice=h * self.head_dim_size
+            end_slice = (h+1) * self.head_dim_size
+            d_out = d_concat[:, start_slice:end_slice]
 
-        # update attention weights
-        self.Wv-= learning_rate * dWv
-        self.Wq-= learning_rate * dWq
-        self.Wk-= learning_rate * dWk
+            # retreive stored forward value for curr head
+            Q = self.all_Q[h]
+            K = self.all_K[h]
+            V = self.all_V[h]
+            weights = self.attn_weights[h]
+            
+            # out= weights @ V
+            # basically same as prev single head, now just per head
+            # absolute cinema
+            dV= weights.T @ d_out
+            dih_weights = d_out @ V.T
+
+            # softmaxx backward
+            # scaled by head_dim instead of full ATTN_DIM
+            scale= np.sqrt (self.head_dim_size)
+            dih_scores = weights * (dih_weights- (dih_weights * weights).sum(axis=1, keepdims=True))
+            dih_scores/= scale
+
+            # scores = Q @ K.T
+            dQ = dih_scores @ K
+            dK = dih_scores.T @ Q
+
+            # gradients for projection weights
+            # each head has own Wq, Wk, Wv
+            dWv = self.x_seq.T @ dV
+            dWq = self.x_seq.T @ dQ
+            dWk = self.x_seq.T @ dK
+
+            # backprop for x_seq
+            # each head contribute t same input then accumulate 
+            d_x_seq +=(
+                dV @ self.Wv[h].T +
+                dQ @ self.Wq[h].T +
+                dK @ self.Wk[h].T 
+            )
+
+            # update weights per head
+            # each head updates its own parameters now
+            self.Wv[h]-= learning_rate* dWv
+            self.Wq[h]-= learning_rate* dWq
+            self.Wk[h]-= learning_rate* dWk
+
+        # residual gradient
+        # skip path from attn_out + x_seq in forward
+        d_x_seq += d_attn_out
 
         # update embeddings
         for i, idx in enumerate(self.input_indices):

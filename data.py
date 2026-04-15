@@ -45,19 +45,21 @@ sentences = [
     # 'ate food' -> 'hungry'
     # 'drank water' -> 'thirsty'
     # 'tired' -> 'sleepy'
-
-    "i ate food because i was hungry",
-    "i drank water because i was thirsty",
-    "i slept because i was tired",
-    "i ran because i was late",
-    "he ate food because he was hungry",
-    "she drank water because she was thirsty",
-    "they slept because they were tired",
-    "the cat ate food because it was hungry",
-    "the dog ran because it was excited",
-    "i studied because i had a test",
-    "i practiced because i wanted to improve",
-    "he trained because he wanted to win"
+    
+    "i ate food and i was full",
+    "i drank water and i was refreshed", 
+    "she ate food because she was hungry",
+    "he drank water because he was thirsty",
+    "they ran because they were late",
+    "the cat slept because it was tired",
+    "i was hungry so i ate food",
+    "i was thirsty so i drank water",
+    "i was tired so i slept early",
+    "i was late so i ran fast",
+    "he was hungry so he ate food",
+    "she was tired so she slept early",
+    "he streamed because it was fun",
+    "the stream made him dumb"
 
 ]
 
