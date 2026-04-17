@@ -57,17 +57,26 @@ how wrong it was, then nudges its weights to be less wrong. Repeat 5000 times
 
 ## v1 architecture (if you want the nerdy technical explanation):
 -input: N one-hot vectors concatenated -> shape (1, vocab_size × N)
+
 -hidden layer: linear transformation + ReLU activation
+
 -output layer: linear transformation + softmax -> probability 
 distribution over vocab
+
 -loss: cross-entropy
+
 -optimization: weight = weight - learning_rate × gradient via backpropagation
 
+
 ## v2 architecture:
--same numpy. completely different model.
+-same numpy. completely different model
+
 -swapped one-hot for learned embeddings + sinusoidal positional encoding
+
 -added multi-head attention (4 heads) with full backprop
+
 -trained on 100+ normal english sentences. ~24k epochs. took a whole night
+
 -loss bottomed out around sub 1 range
 
 ### v1 here's a badly drawn diagram
