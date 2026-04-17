@@ -9,7 +9,7 @@ This kinda just started as a joke. An experimental sandbox project
 I got obsessed with it, it became a mini transformer
 
 ## v2
-a mini transformer. It learned embeddings, sinusoidal positional encoding, 
+a mini transformer that learned embeddings, sinusoidal positional encoding, 
 multi-head self-attention, and residual connections.
 Essentially it went from a parrot to an artificial one year old toddler..somewhat.
 
@@ -30,8 +30,11 @@ Essentially it went from a parrot to an artificial one year old toddler..somewha
 
 <img width="394" height="532" alt="rotnn69" src="https://github.com/user-attachments/assets/95d82944-a7e5-4405-9f8c-a5cf2ae287ad" />
 
-
 <img width="571" height="497" alt="rotnn_sentences" src="https://github.com/user-attachments/assets/116f12dc-0db1-46e6-bdd6-8fb194f99543" />
+
+<img width="907" height="160" alt="image" src="https://github.com/user-attachments/assets/6f7608b2-0e57-49db-86ef-34b174022434" />
+
+<img width="1846" height="1087" alt="image" src="https://github.com/user-attachments/assets/0f3f2802-0615-450a-8ba5-eb61e45762cc" />
 
 "he did not realize how tired her blank" is the best output so far. Genuinely coherent now
 
