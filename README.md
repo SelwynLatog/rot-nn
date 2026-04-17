@@ -99,7 +99,7 @@ pip install numpy matplotlib
 ```bash
 python main.py
 ```
--it will automatically train and generate 'model.npz'
+-it will automatically train and generate 'model.npz' if there is none
 ```bash
 no saved model found. training...
 
