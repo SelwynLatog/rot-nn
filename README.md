@@ -14,7 +14,7 @@ multi-head self-attention, and residual connections.
 Essentially it went from a parrot to an artificial one year old toddler..somewhat.
 
 
-### v1 sample output
+## v1 sample output
 <img width="602" height="499" alt="rotnn1" src="https://github.com/user-attachments/assets/1d501be7-7de5-4cd2-a226-7445b212e062" />
 
 <img width="826" height="529" alt="rotnn2" src="https://github.com/user-attachments/assets/6a139798-1f07-48e3-9d67-6d45d903f7d0" />
