@@ -1,11 +1,11 @@
 # rot'nn
-
 ## v1
 a simple brainrot predictive neural network from scratch using raw numpy.
 No pytorch or tensorflow.
 Trained on brainrot-> generates brainrot
 
-This kinda just started as a joke. "Let me build a neural network from scratch but its brainrot haha"
+This kinda just started as a joke. An experimental sandbox project
+"Let me build a neural network from scratch but its brainrot haha"
 I got obsessed with it, it became a mini transformer
 
 ## v2
@@ -25,11 +25,15 @@ Essentially it went from a parrot to an artificial one year old toddler..somewha
 
 <img width="931" height="572" alt="rotnn5" src="https://github.com/user-attachments/assets/8f941925-a79f-425d-9caa-66da36a3c81a" />
 
+## v2 sample output
+<img width="934" height="573" alt="rotnn_loss_curvee" src="https://github.com/user-attachments/assets/910e93e0-c854-4101-8b44-3251ea18db92" />
+
+<img width="394" height="532" alt="rotnn69" src="https://github.com/user-attachments/assets/95d82944-a7e5-4405-9f8c-a5cf2ae287ad" />
 
 
-Eg.
--input: "I just spent"
--output: "I just spent 18 million robux on this shirt say bro wallahi sigma"
+<img width="571" height="497" alt="rotnn_sentences" src="https://github.com/user-attachments/assets/116f12dc-0db1-46e6-bdd6-8fb194f99543" />
+
+"he did not realize how tired her blank" is the best output so far. Genuinely coherent now
 
 v1:
 The output is genuinely dumb, but I purposefully built this from scratch
