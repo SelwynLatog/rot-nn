@@ -57,7 +57,7 @@ class net:
         # shape output projection
         self.Wo = np.random.randn(ATTN_DIM_SIZE, ATTN_DIM_SIZE) * WEIGHT_SCALE
 
-
+    # EMBEDDINGS
     def embed(self, word_idx):
         # builds input vector from n-gram:
         # each word → embedding + positional encoding
@@ -103,6 +103,8 @@ class net:
     # collect all heads
     # concantenate
     # apply Wo
+
+    # ATTENTION
     def attention(self, x_seq):
         head_outputs= []
         all_weights= []
@@ -151,17 +153,19 @@ class net:
 
         return out, all_weights
     
+    # RECTIFIED LINEAR UNIT
     def relu(self, x):
-        # rectified linear unit
         # negative gets bonked to 0, positve unchanged
         return np.maximum(0, x)
 
+    # SOFTMAX
     def softmax(self, x):
         # output layer activation
         # raw scores -> probabilities that sum to 1
-        exp_x = np.exp(x - np.max(x))
-        return exp_x / exp_x.sum()
+        exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+        return exp_x / exp_x.sum(axis=1, keepdims=True)
 
+    # FORWARD PASS
     def forward(self, word_indices):
         # prev implementation using one_hot vec:
         # word_indices -> one_hot -> ×w1 + b1 -> relu -> ×w2 + b2 -> softmaxxing -> probs
@@ -192,17 +196,16 @@ class net:
 
         return self.probs
 
+    # CROSS-ENTROPY LOSS
     def loss(self, probs, target_idx):
-        # cross entropy loss
         # low confidence on correct answer  -> high loss
         # high confidence on correct answer -> low loss
         correct_prob = probs[0, target_idx]
         return -np.log(correct_prob + 1e-9)  # 1e-9 prevents log(0) crash
 
+    # BACKPROPAGATION
     def backward(self, target_idx, learning_rate=LEARNING_RATE):
-        # backpropagation
         # trace error backward, compute gradients, nudge all weights
-
         # output layer gradients
         # subtract 1 from correct word's slot — bigger error = bigger signal
         dz2 = self.probs.copy()
@@ -221,6 +224,11 @@ class net:
         dw1 = np.dot(self.x.T, dz1)             # shape: (ATTN_DIM_SIZE * N, hidden_size)
         db1 = dz1                               # shape: (1, hidden_size)
         
+
+        # removed old embedding block
+        # attention backprop implementation
+        dx = np.dot (dz1, self.w1.T) # (1, ATTN_DIM_SIZE *N)
+
         # nudge every weight
         # new_weight = old_weight - learning_rate × gradient
         self.w2 -= learning_rate * dw2
@@ -228,16 +236,12 @@ class net:
         self.w1 -= learning_rate * dw1
         self.b1 -= learning_rate * db1
 
-        # removed old embedding block
-        # attention backprop implementation
-        dx = np.dot (dz1, self.w1.T) # (1, ATTN_DIM_SIZE *N)
-
         # reshape to (N, ATTN_DIM_SIZE)
         d_attn_out = dx.reshape (self.n, -1)
 
         # gradients kinda explode lowkirkenuinely at around 200 epochs
         # try gradient clipping to prevent it and loss actually goes down
-        CLIP = 1.0
+        CLIP = 0.01
         d_attn_out = np.clip(d_attn_out, -CLIP, CLIP)
 
         # Multi-head attention backward
@@ -252,7 +256,7 @@ class net:
         concat = np.concatenate(self.head_outputs, axis=1) # (N, ATTN_DIM_SIZE)
         
         # gradient wrt Wo usually linear layer rule of X^T @ dY
-        dWo = concat.T @ d_attn_out
+        dWo = np.clip(concat.T @ d_attn_out, -0.01, 0.01)
 
         # gradient flowing back before Wo
         d_concat= d_attn_out @ self.Wo.T
@@ -297,9 +301,10 @@ class net:
 
             # gradients for projection weights
             # each head has own Wq, Wk, Wv
-            dWv = self.x_seq.T @ dV
-            dWq = self.x_seq.T @ dQ
-            dWk = self.x_seq.T @ dK
+            dWv = np.clip(self.x_seq.T @ dV, -0.01, 0.01)
+            dWq = np.clip(self.x_seq.T @ dQ, -0.01, 0.01)
+            dWk = np.clip(self.x_seq.T @ dK, -0.01, 0.01)
+
 
             # backprop for x_seq
             # each head contribute t same input then accumulate 
@@ -321,7 +326,8 @@ class net:
 
         # update embeddings
         for i, idx in enumerate(self.input_indices):
-            self.e[idx]-= learning_rate * d_x_seq[i]
+            grad = np.clip(d_x_seq[i], -0.05, 0.05)
+            self.e[idx] -= learning_rate * grad
 
 # test one cycle
 if __name__ == "__main__":

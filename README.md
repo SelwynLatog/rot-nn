@@ -1,8 +1,20 @@
 # rot'nn
+
+## v1
 a simple brainrot predictive neural network from scratch using raw numpy.
 No pytorch or tensorflow.
 Trained on brainrot-> generates brainrot
 
+This kinda just started as a joke. "Let me build a neural network from scratch but its brainrot haha"
+I got obsessed with it, it became a mini transformer
+
+## v2
+a mini transformer. It learned embeddings, sinusoidal positional encoding, 
+multi-head self-attention, and residual connections.
+Essentially it went from a parrot to an artificial one year old toddler..somewhat.
+
+
+### v1 sample output
 <img width="602" height="499" alt="rotnn1" src="https://github.com/user-attachments/assets/1d501be7-7de5-4cd2-a226-7445b212e062" />
 
 <img width="826" height="529" alt="rotnn2" src="https://github.com/user-attachments/assets/6a139798-1f07-48e3-9d67-6d45d903f7d0" />
@@ -19,10 +31,16 @@ Eg.
 -input: "I just spent"
 -output: "I just spent 18 million robux on this shirt say bro wallahi sigma"
 
+v1:
 The output is genuinely dumb, but I purposefully built this from scratch
 so I can learn how language models actually work under the hood.
 This is an experimental project, and I will be doing major changes as I continue
 and deepen my learning of neural networks
+
+v2:
+the output is still broken english. but it's *different* broken english.
+it pulls real fragments from training. it has syntactic flow.
+it's not random noise anymore. it's a 1 year old that learned some words kinda.
 
 ## how it works:
 a sentence is split into each word. Each word gets converted to a number.
@@ -30,7 +48,7 @@ The network takes N words at a time, tries to guess the next one, checks
 how wrong it was, then nudges its weights to be less wrong. Repeat 5000 times
 (or how many times you want it is configurable via constants.py), that's it.
 
-## architecture (if you want the nerdy technical explanation):
+## v1 architecture (if you want the nerdy technical explanation):
 -input: N one-hot vectors concatenated -> shape (1, vocab_size × N)
 -hidden layer: linear transformation + ReLU activation
 -output layer: linear transformation + softmax -> probability 
@@ -38,7 +56,14 @@ distribution over vocab
 -loss: cross-entropy
 -optimization: weight = weight - learning_rate × gradient via backpropagation
 
-### here's a badly drawn diagram
+## v2 architecture:
+-same numpy. completely different model.
+-swapped one-hot for learned embeddings + sinusoidal positional encoding
+-added multi-head attention (4 heads) with full backprop
+-trained on 100+ normal english sentences. ~24k epochs. took a whole night
+-loss bottomed out around sub 1 range
+
+### v1 here's a badly drawn diagram
 <img width="1123" height="694" alt="image" src="https://github.com/user-attachments/assets/0c3836c6-8200-4380-b76d-97599f1355e8" />
 
 ## installation
@@ -115,10 +140,3 @@ del model.npz
 rm model.npz
 python main.py --viz
 ```
-
-## future improvements
-- update 'visualize.py' to show attension weights per generation step
-- multi-head attention
-- larger training corpus
-
-Busy with school corporate system slop atm. Will continue on my free time

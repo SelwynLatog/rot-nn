@@ -5,7 +5,10 @@ import numpy as np
 from data import build_vocab, get_ngram_pairs, sentences
 from network import net
 from generate import generate
-from constants import N, HIDDEN_SIZE, EPOCHS, LEARNING_RATE, PRINT_EVERY, MODEL_PATH, GEN_LENGTH
+from constants import (
+    N, HIDDEN_SIZE, EPOCHS, LEARNING_RATE,
+    PRINT_EVERY, MODEL_PATH, GEN_LENGTH, MIN_LOSS
+)
 
 VIZ = "--viz" in sys.argv
 
@@ -44,26 +47,53 @@ if not os.path.exists(MODEL_PATH):
             np.savez(MODEL_PATH,
                  w1=network.w1, w2=network.w2,
                  b1=network.b1, b2=network.b2,
+                 e=network.e,
+                 Wo=network.Wo,
+                 Wq=network.Wq,
+                 Wk=network.Wk,
+                 Wv=network.Wv,
                  loss_log=np.array(loss_log),
                  epoch_log=np.array(epoch_log))
-
+        
         if epoch % PRINT_EVERY == 0 or epoch == EPOCHS - 1:
             print(f"epoch {epoch:>5} | loss: {avg_loss:.4f}")
             loss_log.append(avg_loss)
             epoch_log.append(epoch)
 
+
+        # stop at min loss block
+        if avg_loss < MIN_LOSS:
+            np.savez(MODEL_PATH,
+                 w1=network.w1, w2=network.w2,
+                 b1=network.b1, b2=network.b2,
+                 e=network.e,
+                 Wo=network.Wo,
+                 Wq=network.Wq,
+                 Wk=network.Wk,
+                 Wv=network.Wv,
+                 loss_log=np.array(loss_log),
+                 epoch_log=np.array(epoch_log))
+            print(f"\nearly stop at epoch {epoch} - loss {avg_loss:.4f} < {MIN_LOSS}")
+            break
+        
+
     print("\ntraining complete. model saved.\n")
 
-# load model.npz
-network = net(vocab_size=vocab_size, hidden_size=HIDDEN_SIZE, n=N)
-saved   = np.load(MODEL_PATH)
-network.w1 = saved["w1"]
-network.w2 = saved["w2"]
-network.b1 = saved["b1"]
-network.b2 = saved["b2"]
+    # load model.npz
+    network = net(vocab_size=vocab_size, hidden_size=HIDDEN_SIZE, n=N)
+    saved   = np.load(MODEL_PATH)
+    network.w1 = saved["w1"]
+    network.w2 = saved["w2"]
+    network.b1 = saved["b1"]
+    network.b2 = saved["b2"]
+    network.e  = saved["e"]
+    network.Wo = saved["Wo"]
+    network.Wq = saved["Wq"]
+    network.Wk = saved["Wk"]
+    network.Wv = saved["Wv"]
 
-loss_history  = list(saved["loss_log"])  if "loss_log"  in saved else []
-epoch_history = list(saved["epoch_log"]) if "epoch_log" in saved else []
+    loss_history  = list(saved["loss_log"])  if "loss_log"  in saved else []
+    epoch_history = list(saved["epoch_log"]) if "epoch_log" in saved else []
 
 if VIZ:
     from visualize import show_generation
@@ -71,7 +101,7 @@ if VIZ:
 
 while True:
     seed = input(f"\nenter seed ({N} words) or 'quit': ").strip()
-    if seed == "quit":
+    if seed.lower() == "quit":
         break
 
     words = seed.split()
