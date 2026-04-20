@@ -196,6 +196,211 @@ class net:
 
         return self.probs
 
+    # forward build batch matrices once before training
+    # eg. inputs (1020, N) integer indices
+    # targets: (1020,) integer indices
+    # why? because I realized training time takes a gazillion hours
+    # for a model this small
+    def forward_batch(self, batch_indices):
+        # batch_indices : (B, N) integer array
+        # returns probs : (B, vocab_size)
+
+        B = len(batch_indices)
+        self.batch_input_indices = batch_indices
+
+        # embed
+        # instead of building one(1, EMBED*N) vector, build (B, N, EMBED_DIM)
+        # each row is a sample, each slot is a word position
+        x_seq = self.e[batch_indices] # (B, N, EMBED_DIM)
+        x_seq = x_seq + self.p[np.newaxis, :, :] ## (B, N, EMBED_DIM) broadcast pos enc
+        self.batch_x_seq = x_seq
+
+        # multi head attention
+        head_outputs = []
+        self.batch_all_Q = []
+        self.batch_all_K = []
+        self.batch_all_V = []
+        self.batch_attn_weights = []
+
+        for h in range(self.num_heads):
+            # x_seq @ Wq : (B,N, EMBED) @ (EMBED, HEAD_DIM) = (B, N, HEAD_DIM)
+            Q = x_seq @ self.Wq[h]
+            K = x_seq @ self.Wk[h]
+            V = x_seq @ self.Wv[h]
+
+            self.batch_all_Q.append(Q)
+            self.batch_all_K.append(K)
+            self.batch_all_V.append(V)
+
+            # scores : (B, N, HEAD_DIM) @ (B, HEAD_DIM, N) = (B, N, N)
+            scale  = np.sqrt(self.head_dim_size)
+            scores = (Q @ K.transpose(0, 2, 1)) / scale
+            scores -= scores.max(axis=-1, keepdims=True)
+            weights = np.exp(scores)
+            weights /= weights.sum(axis=-1, keepdims=True)
+
+            # out: (B, N, N) @ (B, N, HEAD_DIM) = (B, N, HEAD_DIM)
+            out = weights @ V
+
+            head_outputs.append(out)
+            self.batch_attn_weights.append(weights)
+        
+        # concat all heads (B,N,ATTN_DIM)
+        concat= np.concatenate(head_outputs, axis=-1)
+
+        # project (B, N, ATTN_DIM) @ (ATTN_DIM, ATTN_DIM) = (B, N, ATTN_DIM)
+        attn_out= concat @ self.Wo
+        self.batch_head_outputs = head_outputs
+
+        # residual + flatten (B, N* ATTN_DIM)
+        attn_out = attn_out+ x_seq
+        x= attn_out.reshape(B,-1)
+        self.batch_x= x
+
+        # mlp
+        # (B, N*ATTN_DIM) @ (N*ATTN_DIM, HIDDEN) = (B, HIDDEN)
+        self.batch_z1 = x @ self.w1 + self.b1
+        self.batch_a1 = self.relu(self.batch_z1)
+
+        # B, HIDDEN) @ (HIDDEN, VOCAB) = (B, VOCAB)
+        self.batch_z2 = self.batch_a1 @ self.w2 + self.b2
+
+        # softmax over vocab dim
+        z2= self.batch_z2
+        z2= z2- z2.max(axis=1, keepdims=True)
+        exp_z= np.exp(z2)
+        self.batch_probs= exp_z/ exp_z.sum(axis=1, keepdims=True)
+
+        return self.batch_probs
+
+    def backward_batch(self, target_indices, learning_rate=LEARNING_RATE):
+        # target_indices (B,)integer array
+        B = len(target_indices)
+        
+        # output layer
+        # same as single
+        # subtract 1 from current slot
+        # but now all of B samples done at once
+        dz2= self.batch_probs.copy() # (B, vocab)
+        dz2[np.arange(B), target_indices] -=1 # (B, vocab)
+
+        # ave gradients across the batch
+        # without this gradients take proportionally larger steps
+        # with it each sample contributes to its own gradient, then we sum and normalize
+        dw2= self.batch_a1.T @ dz2 / B # (hidden, vocab)
+        db2= dz2.mean(axis=0, keepdims=True) # (1, vocab)
+
+        da1= dz2 @ self.w2.T # (B, hidden)
+        dz1= da1 * (self.batch_z1>0) # relu backward
+        dw1= self.batch_x.T @ dz1/ B  # (N*ATTN_DIM, hidden)
+        db1= dz1.mean(axis=0, keepdims=True) # (1, hidden)
+
+        dx= dz1 @ self.w1.T # (B, N*ATTN_DIM)
+
+        # update MLP weights
+        self.w2 -= learning_rate * dw2
+        self.b2 -= learning_rate * db2
+        self.w1 -= learning_rate * dw1
+        self.b1 -= learning_rate * db1
+
+        # new thing is : dz2[np.arange(B), target_indices] -= 1
+        # in single version it was dz2[0, target_idx] -= 1
+        # prev: one row, one col
+        # curr: B rows, each with different target cols
+        # np.arange(B) gives eg. [0, 1, 2, ... B-1] 
+        # and target_indices gives the correct column for each row
+        # numpy indexes them as pairs silmutaneously
+        # much faster
+
+        # attention backward
+        # reshape dx from (B, N*ATTN_DIM) back to (B, N, ATTN_DIM)
+        d_attn_out = dx.reshape(B, self.n, -1)
+
+        CLIP = 0.01
+        d_attn_out = np.clip(d_attn_out, -CLIP, CLIP)
+
+        # backprop through Wo
+        # concat was (B, N, ATTN_DIM) going into Wo during forward
+        concat= np.concatenate(self.batch_head_outputs, axis=-1)
+
+        # dW0 - sum over B and N dimensions, then normalize
+        # concat.transpose(0,2,1) is (B, ATTN_DIM, N)
+        # @ d_attn_out is (B, N, ATTN_DIM)
+        # result is (B, ATTN_DIM, ATTN_DIM), mean over batch
+        dWo = np.clip(
+        (concat.transpose(0, 2, 1) @ d_attn_out).mean(axis=0),
+        -CLIP, CLIP)
+
+        # gradients before Wo :   (B, N, ATTN_DIM) @ (ATTN_DIM, ATTN_DIM) = (B, N, ATTN_DIM)
+        d_concat = d_attn_out @ self.Wo.T
+
+        self.Wo-= learning_rate * dWo
+
+        # per head backward loop
+        d_x_seq = np.zeros_like(self.batch_x_seq)  # (B, N, EMBED_DIM)
+
+        for h in range (self.num_heads):
+            start = h* self.head_dim_size
+            end = (h + 1) * self.head_dim_size
+            d_out = d_concat[:, :, start:end] # (B, N, HEAD_DIM)
+
+            Q = self.batch_all_Q[h] # (B, N, HEAD_DIM)
+            K = self.batch_all_K[h]
+            V = self.batch_all_V[h]
+            weights = self.batch_attn_weights[h] # (B, N, N)
+
+            # out = weights @ V
+            # weights.transpose(0,2,1) is (B, N, N) transposed inner dims
+            dV = weights.transpose(0,2,1) @ d_out
+            dih_weights = d_out @ V.transpose(0, 2, 1)
+
+            # softmax backward
+            scale = np.sqrt(self.head_dim_size)
+            dih_scores= weights  * (
+                dih_weights - (dih_weights * weights).sum(axis=-1, keepdims=True)
+            )
+            dih_scores/=scale
+
+            # scores = Q @ K.T
+            dQ = dih_scores @ K                                     # (B, N, HEAD_DIM)
+            dK = dih_scores.transpose(0, 2, 1) @ Q
+
+            # projection weight gradients - mean over batch
+            # x_seq is (B, N, EMBED), dV is (B, N, HEAD_DIM)
+            # transpose inner : (B, EMBED, N) @ (B, N, HEAD_DIM)
+            dWv = np.clip(
+                (self.batch_x_seq.transpose(0, 2, 1) @ dV).mean(axis=0),
+                -CLIP, CLIP)                                        # (EMBED, HEAD_DIM)
+            dWq = np.clip(
+                (self.batch_x_seq.transpose(0, 2, 1) @ dQ).mean(axis=0),
+                -CLIP, CLIP)
+            dWk = np.clip(
+                (self.batch_x_seq.transpose(0, 2, 1) @ dK).mean(axis=0),
+                -CLIP, CLIP)
+            
+            # accumulate gradients back to input sequence
+            d_x_seq += (
+                dV @ self.Wv[h].T +
+                dQ @ self.Wq[h].T +
+                dK @ self.Wk[h].T
+            )
+
+            self.Wv[h] -= learning_rate * dWv
+            self.Wq[h] -= learning_rate * dWq
+            self.Wk[h] -= learning_rate * dWk
+
+        # residual gradient
+        d_x_seq += d_attn_out # (B, N, EMBED_DIM)
+
+        # update embeddings
+        # each sample in the batch diddied (touched) N embeddings rows
+        # we accumulate all grads for the same word index then apply once
+        d_x_seq = np.clip(d_x_seq, -0.05, 0.05)
+        for b in range(B):
+            for i, idx in enumerate(self.batch_input_indices[b]):
+                self.e[idx] -= learning_rate * d_x_seq[b, i]
+
+
     # CROSS-ENTROPY LOSS
     def loss(self, probs, target_idx):
         # low confidence on correct answer  -> high loss

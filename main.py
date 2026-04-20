@@ -27,19 +27,26 @@ if not os.path.exists(MODEL_PATH):
 
     best_loss = float('inf')
 
-    for epoch in range(EPOCHS):
-        total_loss = 0
+    # build batch matrices once before the loop
+    # all inputs : (B,N),all targets : (B,)
+    all_inputs  = np.array([inp for inp, tgt in pairs], dtype=np.int32)
+    all_targets = np.array([tgt for inp, tgt in pairs], dtype=np.int32)
 
+    for epoch in range(EPOCHS):
         # ill try adding decay over time
         # the lower the loss the slower steps it takes per epoch cycle
         current_lr = LEARNING_RATE * (0.9999 ** epoch)
 
-        for inp, tgt in pairs:
-            probs = network.forward(inp)
-            total_loss += network.loss(probs, tgt)
-            network.backward(tgt, learning_rate=current_lr)
+        # one forward pass over all pairs silmutaneaously 
+        probs = network.forward_batch(all_inputs)
 
-        avg_loss = total_loss / len(pairs)
+        # batch cross-entropy loss
+        # grab the probability the model assigned to each correct word
+        correct_probs = probs[np.arange(len(all_targets)), all_targets]
+        avg_loss = float(-np.log(correct_probs + 1e-9).mean())
+
+        # one backward pass over all pairs simultaneously
+        network.backward_batch(all_targets, learning_rate=current_lr)
 
         # save best model w min loss incase it explodes during training from tweaking
         if avg_loss < best_loss:

@@ -50,10 +50,10 @@ MIN_LOSS= 0.5
 
 # how big the correction is with every step. Too High = Unstable. Too Low= Slow
 # update: set a lot lower now due to the new attention weights
-# toggle lr at around 0.01 - 0.0005
 # lower end is incredibly slow (it took a whole night of training i am not even joking)
 # but loss drop was beautiful and stable
-LEARNING_RATE= 0.0005
+# toggle at around 0.5-0.01
+LEARNING_RATE= 0.05
 
 # scales initial random weights. Too high = unstable gradients. Too low = slow start
 WEIGHT_SCALE = 0.01
